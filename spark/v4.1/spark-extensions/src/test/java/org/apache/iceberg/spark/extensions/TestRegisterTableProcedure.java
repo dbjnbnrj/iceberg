@@ -116,10 +116,6 @@ public class TestRegisterTableProcedure extends ExtensionsTestBase {
 
     sql("CALL %s.system.register_table('%s', '%s')", catalogName, targetName, metadataJson);
 
-    // The test setup uses HiveCatalog which doesn't support overwrite, so it falls back to the
-    // default implementation in Catalog interface which throws UnsupportedOperationException.
-    // This verifies that the 'overwrite' parameter is correctly passed to the catalog.
-    // The third argument in register_table procedure is overwrite = true.
     assertThatThrownBy(
             () ->
                 sql(

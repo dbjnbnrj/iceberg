@@ -18,7 +18,7 @@
  */
 package org.apache.iceberg.spark.extensions;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import org.apache.iceberg.ParameterizedTestExtension;
@@ -101,7 +101,9 @@ public class TestRegisterTableProcedureWithOverwriteSupport extends ExtensionsTe
         sql("SELECT * FROM %s.default.%s", customCatalogName, sourceTableName);
     List<Object[]> registered =
         sql("SELECT * FROM %s.default.%s", customCatalogName, localTargetName);
-    assertEquals("Registered table rows should match original table rows", original, registered);
+    assertThat(registered)
+        .as("Registered table rows should match original table rows")
+        .isEqualTo(original);
   }
 
   public static class OverwriteSupportedCatalog extends InMemoryCatalog {
