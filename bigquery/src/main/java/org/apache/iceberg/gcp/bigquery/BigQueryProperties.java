@@ -101,11 +101,37 @@ class BigQueryProperties implements Serializable {
   BigQueryProperties(Map<String, String> properties) {
     Preconditions.checkNotNull(properties, "Properties cannot be null");
 
-    this.projectId = properties.get(PROJECT_ID);
+    Preconditions.checkArgument(
+        !(properties.containsKey(PROJECT_ID)
+            && properties.containsKey(HistoricalPropertyNames.PROJECT_ID)),
+        "Invalid GCP project configuration. "
+            + "Found both properties '%s' and '%s', only one must be used.",
+        PROJECT_ID,
+        HistoricalPropertyNames.PROJECT_ID);
+    Preconditions.checkArgument(
+        properties.containsKey(PROJECT_ID)
+            || properties.containsKey(HistoricalPropertyNames.PROJECT_ID),
+        "Invalid GCP project: %s must be specified",
+        PROJECT_ID);
+
+    Preconditions.checkArgument(
+        !(properties.containsKey(GCP_LOCATION)
+            && properties.containsKey(HistoricalPropertyNames.GCP_LOCATION)),
+        "Invalid warehouse location configuration. "
+            + "Found both properties '%s' and '%s', only one must be used.",
+        GCP_LOCATION,
+        HistoricalPropertyNames.GCP_LOCATION);
+
+    this.projectId =
+        properties.containsKey(PROJECT_ID)
+            ? properties.get(PROJECT_ID)
+            : properties.get(HistoricalPropertyNames.PROJECT_ID);
     Preconditions.checkArgument(
         projectId != null, "Invalid GCP project: %s must be specified", PROJECT_ID);
 
-    this.location = properties.getOrDefault(GCP_LOCATION, DEFAULT_GCP_LOCATION);
+    String fallbackLocation =
+        properties.getOrDefault(HistoricalPropertyNames.GCP_LOCATION, DEFAULT_GCP_LOCATION);
+    this.location = properties.getOrDefault(GCP_LOCATION, fallbackLocation);
 
     this.listAllTables = Boolean.parseBoolean(properties.getOrDefault(LIST_ALL_TABLES, "true"));
 

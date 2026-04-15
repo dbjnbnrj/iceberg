@@ -40,19 +40,45 @@ public class TestBigQueryProperties {
   }
 
   @Test
-  public void testInitializeWithDefaultLocation() {
-    Map<String, String> properties = Map.of(BigQueryProperties.PROJECT_ID, "test-project");
-    BigQueryProperties bigQueryProperties = new BigQueryProperties(properties);
-
-    assertThat(bigQueryProperties.projectId()).isEqualTo("test-project");
-    assertThat(bigQueryProperties.location()).isEqualTo("us");
-  }
-
-  @Test
   public void testInitializeWithNullProperties() {
     assertThatThrownBy(() -> new BigQueryProperties(null))
         .isInstanceOf(NullPointerException.class)
         .hasMessageContaining("Properties cannot be null");
+  }
+
+  @Test
+  public void testInitializeWithHistoricalProperties() {
+    Map<String, String> properties =
+        Map.of(
+            HistoricalPropertyNames.PROJECT_ID, "test-project",
+            HistoricalPropertyNames.GCP_LOCATION, "us-central1");
+    BigQueryProperties bigQueryProperties = new BigQueryProperties(properties);
+
+    assertThat(bigQueryProperties.projectId()).isEqualTo("test-project");
+    assertThat(bigQueryProperties.location()).isEqualTo("us-central1");
+  }
+
+  @Test
+  public void testInitializeWithHistoricalProjectIdAndProjectId() {
+    Map<String, String> properties =
+        Map.of(
+            HistoricalPropertyNames.PROJECT_ID, "hist-test-project",
+            BigQueryProperties.PROJECT_ID, "test-project");
+    assertThatThrownBy(() -> new BigQueryProperties(properties))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Found both properties");
+  }
+
+  @Test
+  public void testInitializeWithHistoricalGcpLocationAndGcpLocation() {
+    Map<String, String> properties =
+        Map.of(
+            HistoricalPropertyNames.GCP_LOCATION, "hist-location",
+            BigQueryProperties.GCP_LOCATION, "new-location",
+            BigQueryProperties.PROJECT_ID, "test-project");
+    assertThatThrownBy(() -> new BigQueryProperties(properties))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Found both properties");
   }
 
   @Test
