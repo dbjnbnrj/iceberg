@@ -19,6 +19,7 @@
 package org.apache.iceberg.spark.extensions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.atIndex;
 
 import java.util.List;
@@ -81,5 +82,60 @@ public class TestRegisterTableProcedure extends ExtensionsTestBase {
         .contains(numRows, atIndex(1))
         .as("Should have the right datafile count in the procedure result")
         .contains(originalFileCount, atIndex(2));
+  }
+
+  @TestTemplate
+  public void testRegisterTableAlreadyExistsFails() throws NoSuchTableException, ParseException {
+    long numRows = 1000;
+
+    sql("CREATE TABLE %s (id int, data string) using ICEBERG", tableName);
+    spark
+        .range(0, numRows)
+        .withColumn("data", functions.col("id").cast(DataTypes.StringType))
+        .writeTo(tableName)
+        .append();
+
+    Table table = Spark3Util.loadIcebergTable(spark, tableName);
+    String metadataJson = TableUtil.metadataFileLocation(table);
+
+    sql("CALL %s.system.register_table('%s', '%s')", catalogName, targetName, metadataJson);
+
+    assertThatThrownBy(
+            () ->
+                sql(
+                    "CALL %s.system.register_table('%s', '%s')",
+                    catalogName, targetName, metadataJson))
+        .isInstanceOf(Exception.class)
+        .hasMessageContaining("Table already exists");
+  }
+
+  @TestTemplate
+  public void testRegisterTableWithOverwriteNotSupported()
+      throws NoSuchTableException, ParseException {
+    long numRows = 1000;
+
+    sql("CREATE TABLE %s (id int, data string) using ICEBERG", tableName);
+    spark
+        .range(0, numRows)
+        .withColumn("data", functions.col("id").cast(DataTypes.StringType))
+        .writeTo(tableName)
+        .append();
+
+    Table table = Spark3Util.loadIcebergTable(spark, tableName);
+    String metadataJson = TableUtil.metadataFileLocation(table);
+
+    sql("CALL %s.system.register_table('%s', '%s')", catalogName, targetName, metadataJson);
+
+    // The test setup uses HiveCatalog which doesn't support overwrite, so it falls back to the
+    // default implementation in Catalog interface which throws UnsupportedOperationException.
+    // This verifies that the 'overwrite' parameter is correctly passed to the catalog.
+    // The third argument in register_table procedure is overwrite = true.
+    assertThatThrownBy(
+            () ->
+                sql(
+                    "CALL %s.system.register_table('%s', '%s', true)",
+                    catalogName, targetName, metadataJson))
+        .isInstanceOf(Exception.class)
+        .hasMessageContaining("Registering tables with overwrite is not supported");
   }
 }
