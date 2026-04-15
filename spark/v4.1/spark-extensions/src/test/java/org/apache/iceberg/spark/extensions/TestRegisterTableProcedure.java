@@ -26,6 +26,8 @@ import java.util.List;
 import org.apache.iceberg.ParameterizedTestExtension;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.TableUtil;
+import org.apache.iceberg.exceptions.AlreadyExistsException;
+import org.apache.iceberg.exceptions.RESTException;
 import org.apache.iceberg.spark.Spark3Util;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.apache.spark.sql.catalyst.parser.ParseException;
@@ -85,15 +87,10 @@ public class TestRegisterTableProcedure extends ExtensionsTestBase {
   }
 
   @TestTemplate
-  public void testRegisterTableAlreadyExistsFails() throws NoSuchTableException, ParseException {
+  public void testRegisterTableAlreadyExistsFails() throws Exception {
     long numRows = 1000;
 
     sql("CREATE TABLE %s (id int, data string) using ICEBERG", tableName);
-    spark
-        .range(0, numRows)
-        .withColumn("data", functions.col("id").cast(DataTypes.StringType))
-        .writeTo(tableName)
-        .append();
 
     Table table = Spark3Util.loadIcebergTable(spark, tableName);
     String metadataJson = TableUtil.metadataFileLocation(table);
@@ -105,22 +102,15 @@ public class TestRegisterTableProcedure extends ExtensionsTestBase {
                 sql(
                     "CALL %s.system.register_table('%s', '%s')",
                     catalogName, targetName, metadataJson))
-        .isInstanceOf(Exception.class)
+        .isInstanceOf(AlreadyExistsException.class)
         .hasMessageContaining("Table already exists");
   }
 
   @TestTemplate
-  public void testRegisterTableWithOverwriteNotSupported()
-      throws NoSuchTableException, ParseException {
+  public void testRegisterTableWithOverwriteNotSupported() throws Exception {
     long numRows = 1000;
 
     sql("CREATE TABLE %s (id int, data string) using ICEBERG", tableName);
-    spark
-        .range(0, numRows)
-        .withColumn("data", functions.col("id").cast(DataTypes.StringType))
-        .writeTo(tableName)
-        .append();
-
     Table table = Spark3Util.loadIcebergTable(spark, tableName);
     String metadataJson = TableUtil.metadataFileLocation(table);
 
@@ -135,7 +125,9 @@ public class TestRegisterTableProcedure extends ExtensionsTestBase {
                 sql(
                     "CALL %s.system.register_table('%s', '%s', true)",
                     catalogName, targetName, metadataJson))
-        .isInstanceOf(Exception.class)
+        // RESTException is for RESTCatalog; UnsupportedOperationException is for HiveCatalog and
+        // HadoopCatalog.
+        .isInstanceOfAny(UnsupportedOperationException.class, RESTException.class)
         .hasMessageContaining("Registering tables with overwrite is not supported");
   }
 }
