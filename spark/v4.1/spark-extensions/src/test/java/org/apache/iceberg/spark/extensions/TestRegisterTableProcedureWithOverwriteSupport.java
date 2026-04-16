@@ -21,15 +21,15 @@ package org.apache.iceberg.spark.extensions;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
-import org.apache.iceberg.ParameterizedTestExtension;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.TableUtil;
 import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.inmemory.InMemoryCatalog;
 import org.apache.iceberg.spark.Spark3Util;
+import org.apache.iceberg.spark.TestBase;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.TestTemplate;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Currently, {@code registerTable} (with overwrite) is not overridden by {@code HiveCatalog} and
@@ -40,8 +40,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * this new test class was created with a custom catalog ({@link OverwriteSupportedCatalog}) to
  * verify that the {@code overwrite} parameter is correctly passed through the Spark procedure.
  */
-@ExtendWith(ParameterizedTestExtension.class)
-public class TestRegisterTableProcedureWithOverwriteSupport extends ExtensionsTestBase {
+public class TestRegisterTableProcedureWithOverwriteSupport extends TestBase {
+
+  @TempDir
+  protected java.nio.file.Path temp;
 
   private String localTargetName = "register_table";
   private String sourceTableName = "source_table";
@@ -55,9 +57,9 @@ public class TestRegisterTableProcedureWithOverwriteSupport extends ExtensionsTe
     }
   }
 
-  @TestTemplate
+  @Test
   public void testRegisterTableWithOverwrite() throws Exception {
-    customCatalogName = "custom_catalog_" + catalogName;
+    customCatalogName = "custom_catalog";
     spark
         .conf()
         .set("spark.sql.catalog." + customCatalogName, "org.apache.iceberg.spark.SparkCatalog");
