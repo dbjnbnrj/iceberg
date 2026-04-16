@@ -42,8 +42,7 @@ import org.junit.jupiter.api.io.TempDir;
  */
 public class TestRegisterTableProcedureWithOverwriteSupport extends TestBase {
 
-  @TempDir
-  protected java.nio.file.Path temp;
+  @TempDir protected java.nio.file.Path temp;
 
   private String localTargetName = "register_table";
   private String sourceTableName = "source_table";
