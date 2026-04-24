@@ -126,12 +126,11 @@ class BigQueryProperties implements Serializable {
         properties.containsKey(PROJECT_ID)
             ? properties.get(PROJECT_ID)
             : properties.get(HistoricalPropertyNames.PROJECT_ID);
-    Preconditions.checkArgument(
-        projectId != null, "Invalid GCP project: %s must be specified", PROJECT_ID);
 
-    String fallbackLocation =
-        properties.getOrDefault(HistoricalPropertyNames.GCP_LOCATION, DEFAULT_GCP_LOCATION);
-    this.location = properties.getOrDefault(GCP_LOCATION, fallbackLocation);
+    this.location =
+        properties.containsKey(GCP_LOCATION)
+            ? properties.get(GCP_LOCATION)
+            : properties.getOrDefault(HistoricalPropertyNames.GCP_LOCATION, DEFAULT_GCP_LOCATION);
 
     this.listAllTables = Boolean.parseBoolean(properties.getOrDefault(LIST_ALL_TABLES, "true"));
 
